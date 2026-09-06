@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>BLACK HORIZON — Mobile FPS</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#05070a;color:#fff;font-family:Arial,Helvetica,sans-serif;touch-action:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;background:#080b10}
+#hud{position:fixed;inset:0;pointer-events:none}
+#cross{position:absolute;left:50%;top:50%;width:20px;height:20px;transform:translate(-50%,-50%);opacity:.85}
+#cross:before,#cross:after{content:"";position:absolute;background:#fff;box-shadow:0 0 5px #000}.crossh{width:18px;height:2px;left:1px;top:9px;position:absolute}.crossv{width:2px;height:18px;left:9px;top:1px;position:absolute}
+#top{position:absolute;top:18px;left:18px;right:18px;display:flex;justify-content:space-between;font-size:12px;letter-spacing:2px;text-shadow:0 2px 4px #000}
+#objective{position:absolute;top:58px;left:18px;font-size:14px;text-shadow:0 2px 5px #000;max-width:70%}
+#weapon{position:absolute;right:20px;bottom:105px;text-align:right;text-shadow:0 2px 5px #000}
+#ammo{font-size:28px;font-weight:800}.weapname{font-size:11px;letter-spacing:2px}
+#health{position:absolute;left:18px;bottom:26px;width:190px;height:8px;border:1px solid #fff5;background:#0008}
+#hpbar{height:100%;width:100%;background:#eee}
+#joystick{position:absolute;left:22px;bottom:60px;width:132px;height:132px;border:2px solid #fff4;border-radius:50%;background:#fff1;pointer-events:auto}
+#stick{position:absolute;width:58px;height:58px;border-radius:50%;left:35px;top:35px;background:#ffffff35;border:1px solid #fff8}
+.btn{position:absolute;pointer-events:auto;border:1px solid #fff6;background:#1119;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;user-select:none}
+#fire{right:28px;bottom:58px;width:78px;height:78px;background:#b21d2640}#aim{right:116px;bottom:82px;width:58px;height:58px}#reload{right:32px;bottom:150px;width:54px;height:54px}#jump{right:105px;bottom:153px;width:48px;height:48px}#grenade{right:174px;bottom:62px;width:48px;height:48px}
+#start,#dialogue,#missionEnd{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#030509dd,#05070aeF);pointer-events:auto}
+.panel{width:min(760px,90vw);padding:28px;border:1px solid #ffffff25;background:#0b1018ee;box-shadow:0 20px 80px #000;border-radius:14px}
+.kicker{letter-spacing:5px;font-size:11px;color:#aaa}.title{font-size:clamp(40px,9vw,84px);font-weight:900;letter-spacing:-3px;margin:8px 0}.sub{color:#aeb8c7;line-height:1.5}.cta{display:inline-block;margin-top:22px;padding:14px 20px;border:1px solid #fff5;background:#fff;color:#080b10;font-weight:900;letter-spacing:2px;border-radius:6px}
+#dialogue{display:none;align-items:flex-end;padding:0 0 7vh;background:linear-gradient(transparent,#000c)}
+#dialogue .panel{border:0;background:linear-gradient(90deg,#05070af5,#05070a99);border-radius:0;width:100%;max-width:none;padding:28px 7vw}
+#speaker{font-size:12px;letter-spacing:3px;color:#cbd3de}.line{font-size:clamp(18px,3vw,28px);line-height:1.4;margin-top:7px}.hint{font-size:13px;color:#fff;margin-top:16px;padding:14px 18px;border:1px solid #fff6;background:#ffffff16;border-radius:8px;font-weight:800;letter-spacing:1px;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+#missionEnd{display:none}.missionList{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px}.m{padding:10px;border:1px solid #fff2;background:#fff1;font-size:12px}.m b{display:block;margin-bottom:4px}
+@media(max-width:600px){#joystick{bottom:38px}#fire{bottom:35px}#aim{bottom:58px}#weapon{bottom:82px}.missionList{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud">
+  <div id="top"><span id="missionLabel">BLACK HORIZON // MISSION 01</span><span id="fps">ONLINE</span></div>
+  <div id="objective"></div><div id="cross"><div class="crossh"></div><div class="crossv"></div></div>
+  <div id="weapon"><div id="ammo">30 / 120</div><div class="weapname">M4 // 5.56 NATO</div></div>
+  <div id="health"><div id="hpbar"></div></div>
+  <div id="joystick"><div id="stick"></div></div>
+  <div id="fire" class="btn">FIRE</div><div id="aim" class="btn">ADS</div><div id="reload" class="btn">RLD</div><div id="jump" class="btn">JMP</div><div id="grenade" class="btn">G</div>
+</div>
+
+<div id="start"><div class="panel">
+  <div class="kicker">A CINEMATIC MOBILE FPS // VERTICAL SLICE</div>
+  <div class="title">BLACK<br>HORIZON</div>
+  <div class="sub">2041. Something has answered humanity's signal.<br><br>
+  A five-mission campaign of firefights, mystery and first contact. This build contains a playable Mission 01 foundation with touch controls, AI, objectives, dialogue, cinematic transitions and procedural weapon audio.</div>
+  <div class="missionList"><div class="m"><b>01 // BLACK ICE</b>Arctic research station</div><div class="m"><b>02 // ASHES</b>City under electromagnetic blackout</div><div class="m"><b>03 // THE SIGNAL</b>Mountain facility</div><div class="m"><b>04–05 // FALLING SKY / BLACK HORIZON</b>Invasion and first contact</div></div>
+  <div class="cta" id="startBtn">DEPLOY</div>
+</div></div>
+
+<div id="dialogue"><div class="panel"><div id="speaker"></div><div class="line" id="line"></div><button class="hint" id="dialogueNext" type="button">TAP TO CONTINUE ▶</button></div></div>
+<div id="missionEnd"><div class="panel"><div class="kicker">MISSION COMPLETE</div><div class="title" style="font-size:clamp(36px,8vw,70px)">BLACK ICE</div><div class="sub" id="endText"></div><div class="cta" onclick="location.reload()">REPLAY MISSION</div></div></div>
+
+<script>
+const C=document.getElementById('game'),ctx=C.getContext('2d');
+let W,H,DPR; function resize(){DPR=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;C.width=W*DPR;C.height=H*DPR;C.style.width=W+'px';C.style.height=H+'px';ctx.setTransform(DPR,0,0,DPR,0,0)} addEventListener('resize',resize);resize();
+
+const map=[
+"11111111111111111111",
+"10000000000000000001",
+"10111101111111111001",
+"10000101000000001001",
+"10110101011111001001",
+"10010100010001000001",
+"11010111010101111101",
+"10010001010100000001",
+"10111101010111111001",
+"10000001010000001001",
+"10111111011111101001",
+"10000000000000100001",
+"10111111111110111101",
+"10000000000000000001",
+"11111111111111111111"
+];
+const tile=2.6, FOV=Math.PI/3;
+let player={x:2.8,y:12.2,a:-Math.PI/2,hp:100,ammo:30,reserve:120,ads:false};
+let enemies=[
+{x:15.8,y:12.3,a:0,hp:100,alive:true,cd:0},
+{x:16.8,y:10.8,a:0,hp:100,alive:true,cd:.8},
+{x:13.5,y:7.2,a:0,hp:100,alive:true,cd:1.3},
+{x:8.2,y:5.3,a:0,hp:100,alive:true,cd:1.9}
+];
+let keys={}; let joy={x:0,y:0,active:false}; let firing=false; let started=false; let introDone=false; let kills=0; let target=0; let last=performance.now(); let dialogBusy=false;
+const objective=document.getElementById('objective'),ammo=document.getElementById('ammo'),hpbar=document.getElementById('hpbar');
+
+function wall(x,y){let gx=Math.floor(x),gy=Math.floor(y);return !map[gy]||map[gy][gx]!=="0"}
+function move(dx,dy){let nx=player.x+dx,ny=player.y+dy;if(!wall(nx,player.y))player.x=nx;if(!wall(player.x,ny))player.y=ny}
+function norm(a){while(a>Math.PI)a-=Math.PI*2;while(a<-Math.PI)a+=Math.PI*2;return a}
+function ray(a){let s=.035, d=0;while(d<35){let x=player.x+Math.cos(a)*d,y=player.y+Math.sin(a)*d;if(wall(x,y))return d;d+=s}return 35}
+function tone(freq,dur,type="sine",gain=.04){let ac=audio.ctx,o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(gain,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+dur);o.connect(g).connect(ac.master);o.start();o.stop(ac.currentTime+dur)}
+const audio={ctx:null,master:null,init(){if(this.ctx)return;this.ctx=new (window.AudioContext||window.webkitAudioContext)();this.master=this.ctx.createGain();this.master.gain.value=.32;this.master.connect(this.ctx.destination)},shot(){this.init();tone(110,.07,"sawtooth",.16);tone(52,.11,"square",.08)},hit(){this.init();tone(230,.05,"square",.06)},reload(){this.init();tone(500,.04,"square",.04);setTimeout(()=>tone(180,.07,"square",.04),90)},step(){this.init();tone(80,.025,"triangle",.012)},boom(){this.init();tone(55,.35,"sawtooth",.16);setTimeout(()=>tone(38,.3,"sine",.1),80)},ui(){this.init();tone(650,.06,"sine",.03)}};
+
+let dialogueCallback=null;
+function advanceDialogue(ev){
+  if(ev){ev.preventDefault();ev.stopPropagation();}
+  if(!dialogBusy)return;
+  audio.ui();
+  document.getElementById('dialogue').style.display='none';
+  dialogBusy=false;
+  const cb=dialogueCallback; dialogueCallback=null;
+  if(cb)cb();
+}
+function say(s,l,cb){
+  dialogBusy=true; dialogueCallback=cb;
+  document.getElementById('speaker').textContent=s;
+  document.getElementById('line').textContent=l;
+  document.getElementById('dialogue').style.display='flex';
+}
+function intro(){say("MILLER","Station K-19 went dark forty-seven minutes ago.",()=>say("WARD","And the storm?",()=>say("MILLER","The storm isn't on any weather map.",()=>say("COMMAND","Raven Two, land and confirm the facility is secure. No heroics.",()=>{introDone=true;objective.textContent="OBJECTIVE // REACH THE RESEARCH STATION";}))))}
+function shoot(){if(!started||dialogBusy)return;if(player.ammo<=0){audio.ui();return}player.ammo--;audio.shot();ammo.textContent=player.ammo+" / "+player.reserve;let best=null,bd=999;
+for(const e of enemies)if(e.alive){let dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy),ang=Math.abs(norm(Math.atan2(dy,dx)-player.a));if(ang<.075*(player.ads?1.8:1)&&d<22&&d<bd){best=e;bd=d}}
+if(best){best.hp-=34;audio.hit();if(best.hp<=0){best.alive=false;kills++;target++;audio.boom()}}}
+function reload(){if(player.ammo>=30||player.reserve<=0)return;audio.reload();let need=30-player.ammo,g=Math.min(need,player.reserve);player.ammo+=g;player.reserve-=g;ammo.textContent=player.ammo+" / "+player.reserve}
+function grenade(){audio.boom();for(const e of enemies){if(e.alive&&Math.hypot(e.x-player.x,e.y-player.y)<5){e.hp-=100;if(e.hp<=0){e.alive=false;kills++;target++}}}}
+function enemyAI(dt){for(const e of enemies)if(e.alive){let dx=player.x-e.x,dy=player.y-e.y,d=Math.hypot(dx,dy);e.a=Math.atan2(dy,dx);if(d<11&&Math.random()<dt*.65){e.cd-=dt;if(e.cd<=0){e.cd=1.4+Math.random()*1.2;player.hp-=6;audio.hit();hpbar.style.width=Math.max(0,player.hp)+"%"}}if(d<8&&d>.8){let sp=.25*dt,nx=e.x+dx/d*sp,ny=e.y+dy/d*sp;if(!wall(nx,e.y))e.x=nx;if(!wall(e.x,ny))e.y=ny}}}
+function update(dt){
+if(!started||dialogBusy)return;
+let speed=(joy.y<-0.2?2.7:2.15)*dt; if(keys.w)move(Math.cos(player.a)*speed,Math.sin(player.a)*speed);if(keys.s)move(-Math.cos(player.a)*speed,-Math.sin(player.a)*speed);if(keys.a)move(Math.cos(player.a-Math.PI/2)*speed,Math.sin(player.a-Math.PI/2)*speed);if(keys.d)move(Math.cos(player.a+Math.PI/2)*speed,Math.sin(player.a+Math.PI/2)*speed);
+if(joy.active)move(Math.cos(player.a)*(-joy.y)*speed,Math.sin(player.a)*(-joy.y)*speed);
+if(joy.active&&Math.abs(joy.x)>.08)player.a+=joy.x*dt*2.8;
+enemyAI(dt);
+if(player.hp<=0){player.hp=100;player.x=2.8;player.y=12.2;for(const e of enemies)e.alive=true;kills=0;target=0}
+if(player.x>17.3&&player.y<4.0&&kills>=2){objective.textContent="OBJECTIVE // EXTRACT";say("MILLER","I found something in the snow. Ward... you need to see this.",()=>say("WARD","That's not wreckage.",()=>{document.getElementById('endText').textContent=`Station K-19 secured. Hostiles eliminated: ${kills}. The object beneath the ice is transmitting a signal that shouldn't exist.`;document.getElementById('missionEnd').style.display='flex';started=false}))}
+objective.textContent=(kills<2?`OBJECTIVE // CLEAR THE STATION — ${kills}/2 HOSTILES`:"OBJECTIVE // REACH THE NORTHERN EXFIL");
+}
+function render(){
+ctx.fillStyle="#070b12";ctx.fillRect(0,0,W,H);
+let sky=ctx.createLinearGradient(0,0,0,H/2);sky.addColorStop(0,"#050a12");sky.addColorStop(1,"#182331");ctx.fillStyle=sky;ctx.fillRect(0,0,W,H/2);
+ctx.fillStyle="#111820";ctx.fillRect(0,H/2,W,H/2);
+for(let x=0;x<W;x+=2){let a=player.a-FOV/2+(x/W)*FOV,d=ray(a),cd=d*Math.cos(a-player.a),h=Math.min(H*1.8,H/(cd*.92));let shade=Math.max(18,170-cd*10);ctx.fillStyle=`rgb(${shade*.55},${shade*.68},${shade*.82})`;ctx.fillRect(x,H/2-h/2,2,h)}
+for(const e of enemies)if(e.alive){let dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy),ang=norm(Math.atan2(dy,dx)-player.a);if(Math.abs(ang)<FOV*.6){let sx=W/2+(ang/FOV)*W,cd=d*Math.cos(ang),sz=Math.min(H*1.1,H/(cd*.75));ctx.fillStyle="#222";ctx.fillRect(sx-sz*.18,H/2-sz*.36,sz*.36,sz*.72);ctx.fillStyle="#8b1f28";ctx.fillRect(sx-sz*.14,H/2-sz*.28,sz*.28,sz*.06);ctx.fillStyle="#111";ctx.fillRect(sx-sz*.26,H/2+sz*.2,sz*.52,sz*.12)}}
+if(player.ads){ctx.fillStyle="#0008";ctx.fillRect(W/2-110,H/2-80,220,160);ctx.strokeStyle="#fff8";ctx.strokeRect(W/2-90,H/2-60,180,120)}
+}
+function loop(t){let dt=Math.min(.05,(t-last)/1000);last=t;update(dt);render();requestAnimationFrame(loop)} requestAnimationFrame(loop);
+
+function beginGame(ev){
+  if(ev){ev.preventDefault();ev.stopPropagation();}
+  if(started)return;
+  audio.init(); started=true;
+  document.getElementById('start').style.display='none';
+  intro();
+}
+const startBtn=document.getElementById('startBtn');
+startBtn.addEventListener('pointerup',beginGame,{passive:false});
+startBtn.addEventListener('touchend',beginGame,{passive:false});
+document.getElementById('dialogueNext').addEventListener('pointerup',advanceDialogue,{passive:false});
+document.getElementById('dialogueNext').addEventListener('touchend',advanceDialogue,{passive:false});
+document.getElementById('dialogue').addEventListener('pointerup',e=>{
+  if(e.target===document.getElementById('dialogue')) advanceDialogue(e);
+},{passive:false});
+document.addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key===" ")shoot();if(e.key.toLowerCase()==="r")reload();if(e.key.toLowerCase()==="g")grenade()});
+document.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+document.getElementById('fire').onpointerdown=()=>{firing=true;shoot()};document.getElementById('fire').onpointerup=()=>firing=false;document.getElementById('fire').onpointerleave=()=>firing=false;
+setInterval(()=>{if(firing)shoot()},110);
+document.getElementById('reload').onpointerdown=reload;document.getElementById('grenade').onpointerdown=grenade;document.getElementById('aim').onpointerdown=()=>player.ads=!player.ads;
+document.getElementById('jump').onpointerdown=()=>{audio.ui();tone(330,.08,"triangle",.03)};
+let joyEl=document.getElementById('joystick'),stick=document.getElementById('stick');
+function joyMove(ev){let r=joyEl.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=ev.clientX-cx,dy=ev.clientY-cy,m=Math.hypot(dx,dy),lim=52;if(m>lim){dx*=lim/m;dy*=lim/m}joy.x=dx/lim;joy.y=dy/lim;stick.style.transform=`translate(${dx}px,${dy}px)`}
+joyEl.onpointerdown=e=>{joy.active=true;joyMove(e);joyEl.setPointerCapture(e.pointerId)};joyEl.onpointermove=e=>{if(joy.active)joyMove(e)};joyEl.onpointerup=()=>{joy.active=false;joy.x=joy.y=0;stick.style.transform=""};
+let lookX=null; C.onpointerdown=e=>{if(e.clientX>W*.45){lookX=e.clientX}};C.onpointermove=e=>{if(lookX!==null&&e.clientX>W*.45&&!dialogBusy){let dx=e.clientX-lookX;player.a+=dx*.006;lookX=e.clientX}};C.onpointerup=()=>lookX=null;
+</script>
+</body></html>

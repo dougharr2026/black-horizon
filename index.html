@@ -25,7 +25,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;background:#080b10}
 .kicker{letter-spacing:5px;font-size:11px;color:#aaa}.title{font-size:clamp(40px,9vw,84px);font-weight:900;letter-spacing:-3px;margin:8px 0}.sub{color:#aeb8c7;line-height:1.5}.cta{display:inline-block;margin-top:22px;padding:14px 20px;border:1px solid #fff5;background:#fff;color:#080b10;font-weight:900;letter-spacing:2px;border-radius:6px}
 #dialogue{display:none;align-items:flex-end;padding:0 0 7vh;background:linear-gradient(transparent,#000c)}
 #dialogue .panel{border:0;background:linear-gradient(90deg,#05070af5,#05070a99);border-radius:0;width:100%;max-width:none;padding:28px 7vw}
-#speaker{font-size:12px;letter-spacing:3px;color:#cbd3de}.line{font-size:clamp(18px,3vw,28px);line-height:1.4;margin-top:7px}.hint{font-size:11px;color:#9da7b4;margin-top:14px}
+#speaker{font-size:12px;letter-spacing:3px;color:#cbd3de}.line{font-size:clamp(18px,3vw,28px);line-height:1.4;margin-top:7px}.hint{font-size:13px;color:#fff;margin-top:16px;padding:14px 18px;border:1px solid #fff6;background:#ffffff16;border-radius:8px;font-weight:800;letter-spacing:1px;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 #missionEnd{display:none}.missionList{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px}.m{padding:10px;border:1px solid #fff2;background:#fff1;font-size:12px}.m b{display:block;margin-bottom:4px}
 @media(max-width:600px){#joystick{bottom:38px}#fire{bottom:35px}#aim{bottom:58px}#weapon{bottom:82px}.missionList{grid-template-columns:1fr}}
 </style>
@@ -50,7 +50,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;background:#080b10}
   <div class="cta" id="startBtn">DEPLOY</div>
 </div></div>
 
-<div id="dialogue"><div class="panel"><div id="speaker"></div><div class="line" id="line"></div><div class="hint">TAP TO CONTINUE</div></div></div>
+<div id="dialogue"><div class="panel"><div id="speaker"></div><div class="line" id="line"></div><button class="hint" id="dialogueNext" type="button">TAP TO CONTINUE ▶</button></div></div>
 <div id="missionEnd"><div class="panel"><div class="kicker">MISSION COMPLETE</div><div class="title" style="font-size:clamp(36px,8vw,70px)">BLACK ICE</div><div class="sub" id="endText"></div><div class="cta" onclick="location.reload()">REPLAY MISSION</div></div></div>
 
 <script>
@@ -92,7 +92,22 @@ function ray(a){let s=.035, d=0;while(d<35){let x=player.x+Math.cos(a)*d,y=playe
 function tone(freq,dur,type="sine",gain=.04){let ac=audio.ctx,o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(gain,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+dur);o.connect(g).connect(ac.master);o.start();o.stop(ac.currentTime+dur)}
 const audio={ctx:null,master:null,init(){if(this.ctx)return;this.ctx=new (window.AudioContext||window.webkitAudioContext)();this.master=this.ctx.createGain();this.master.gain.value=.32;this.master.connect(this.ctx.destination)},shot(){this.init();tone(110,.07,"sawtooth",.16);tone(52,.11,"square",.08)},hit(){this.init();tone(230,.05,"square",.06)},reload(){this.init();tone(500,.04,"square",.04);setTimeout(()=>tone(180,.07,"square",.04),90)},step(){this.init();tone(80,.025,"triangle",.012)},boom(){this.init();tone(55,.35,"sawtooth",.16);setTimeout(()=>tone(38,.3,"sine",.1),80)},ui(){this.init();tone(650,.06,"sine",.03)}};
 
-function say(s,l,cb){dialogBusy=true;document.getElementById('speaker').textContent=s;document.getElementById('line').textContent=l;document.getElementById('dialogue').style.display='flex';document.getElementById('dialogue').onclick=()=>{audio.ui();document.getElementById('dialogue').style.display='none';dialogBusy=false;if(cb)cb()}}
+let dialogueCallback=null;
+function advanceDialogue(ev){
+  if(ev){ev.preventDefault();ev.stopPropagation();}
+  if(!dialogBusy)return;
+  audio.ui();
+  document.getElementById('dialogue').style.display='none';
+  dialogBusy=false;
+  const cb=dialogueCallback; dialogueCallback=null;
+  if(cb)cb();
+}
+function say(s,l,cb){
+  dialogBusy=true; dialogueCallback=cb;
+  document.getElementById('speaker').textContent=s;
+  document.getElementById('line').textContent=l;
+  document.getElementById('dialogue').style.display='flex';
+}
 function intro(){say("MILLER","Station K-19 went dark forty-seven minutes ago.",()=>say("WARD","And the storm?",()=>say("MILLER","The storm isn't on any weather map.",()=>say("COMMAND","Raven Two, land and confirm the facility is secure. No heroics.",()=>{introDone=true;objective.textContent="OBJECTIVE // REACH THE RESEARCH STATION";}))))}
 function shoot(){if(!started||dialogBusy)return;if(player.ammo<=0){audio.ui();return}player.ammo--;audio.shot();ammo.textContent=player.ammo+" / "+player.reserve;let best=null,bd=999;
 for(const e of enemies)if(e.alive){let dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy),ang=Math.abs(norm(Math.atan2(dy,dx)-player.a));if(ang<.075*(player.ads?1.8:1)&&d<22&&d<bd){best=e;bd=d}}
@@ -120,7 +135,21 @@ if(player.ads){ctx.fillStyle="#0008";ctx.fillRect(W/2-110,H/2-80,220,160);ctx.st
 }
 function loop(t){let dt=Math.min(.05,(t-last)/1000);last=t;update(dt);render();requestAnimationFrame(loop)} requestAnimationFrame(loop);
 
-document.getElementById('startBtn').onclick=()=>{audio.init();started=true;document.getElementById('start').style.display='none';intro()};
+function beginGame(ev){
+  if(ev){ev.preventDefault();ev.stopPropagation();}
+  if(started)return;
+  audio.init(); started=true;
+  document.getElementById('start').style.display='none';
+  intro();
+}
+const startBtn=document.getElementById('startBtn');
+startBtn.addEventListener('pointerup',beginGame,{passive:false});
+startBtn.addEventListener('touchend',beginGame,{passive:false});
+document.getElementById('dialogueNext').addEventListener('pointerup',advanceDialogue,{passive:false});
+document.getElementById('dialogueNext').addEventListener('touchend',advanceDialogue,{passive:false});
+document.getElementById('dialogue').addEventListener('pointerup',e=>{
+  if(e.target===document.getElementById('dialogue')) advanceDialogue(e);
+},{passive:false});
 document.addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key===" ")shoot();if(e.key.toLowerCase()==="r")reload();if(e.key.toLowerCase()==="g")grenade()});
 document.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
 document.getElementById('fire').onpointerdown=()=>{firing=true;shoot()};document.getElementById('fire').onpointerup=()=>firing=false;document.getElementById('fire').onpointerleave=()=>firing=false;
